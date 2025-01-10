@@ -1,8 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
 
 const RubricasTesis = ({ evaluador }) => {
   const [evaluaciones, setEvaluaciones] = useState({
@@ -40,7 +36,6 @@ const RubricasTesis = ({ evaluador }) => {
     }));
   };
 
-  // Cargar evaluaciones guardadas
   useEffect(() => {
     const savedData = localStorage.getItem(`evaluaciones-${evaluador.id}`);
     if (savedData) {
@@ -48,65 +43,58 @@ const RubricasTesis = ({ evaluador }) => {
     }
   }, [evaluador]);
 
-  // Guardar evaluaciones
   useEffect(() => {
     localStorage.setItem(`evaluaciones-${evaluador.id}`, JSON.stringify(evaluaciones));
   }, [evaluaciones, evaluador]);
 
   const RenderRevision = ({ revisionNum, data }) => (
-    <Card className="mb-8">
-      <CardHeader>
+    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <div className="mb-4">
         <h2 className="text-xl font-bold">
           Revisión {revisionNum} ({revisionNum === 1 ? '40%' : '60%'})
         </h2>
         <p className="text-gray-600">Evaluador: {evaluador.nombre}</p>
-      </CardHeader>
-      <CardContent className="space-y-6">
+      </div>
+      <div className="space-y-6">
         {Object.entries(criterios).map(([key, descripcion]) => (
-          <div key={key} className="space-y-4 p-4 bg-gray-50 rounded-lg">
-            <Label className="text-lg font-medium">{descripcion}</Label>
-            <RadioGroup
-              value={data[key].valor}
-              onValueChange={(valor) => 
-                handleEvaluacionChange(`revision${revisionNum}`, key, 'valor', valor)
-              }
-              className="flex space-x-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="insuficiente" id={`${key}-insuficiente-${revisionNum}`} />
-                <Label htmlFor={`${key}-insuficiente-${revisionNum}`}>Insuficiente</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="suficiente" id={`${key}-suficiente-${revisionNum}`} />
-                <Label htmlFor={`${key}-suficiente-${revisionNum}`}>Suficiente</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="excelente" id={`${key}-excelente-${revisionNum}`} />
-                <Label htmlFor={`${key}-excelente-${revisionNum}`}>Excelente</Label>
-              </div>
-            </RadioGroup>
-            <Textarea
+          <div key={key} className="p-4 bg-gray-50 rounded-lg">
+            <label className="block text-lg font-medium mb-2">{descripcion}</label>
+            <div className="flex space-x-4 mb-2">
+              {['insuficiente', 'suficiente', 'excelente'].map((valor) => (
+                <label key={valor} className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name={`${key}-${revisionNum}`}
+                    value={valor}
+                    checked={data[key].valor === valor}
+                    onChange={(e) => 
+                      handleEvaluacionChange(`revision${revisionNum}`, key, 'valor', e.target.value)
+                    }
+                  />
+                  <span className="capitalize">{valor}</span>
+                </label>
+              ))}
+            </div>
+            <textarea
               placeholder="Observaciones..."
               value={data[key].observaciones}
               onChange={(e) => 
                 handleEvaluacionChange(`revision${revisionNum}`, key, 'observaciones', e.target.value)
               }
-              className="mt-2"
+              className="w-full p-2 border rounded-md"
+              rows="3"
             />
           </div>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
       <h1 className="text-2xl font-bold text-center mb-6">Evaluación de Tesis</h1>
       
-      {/* Primera Revisión */}
       <RenderRevision revisionNum={1} data={evaluaciones.revision1} />
-      
-      {/* Segunda Revisión */}
       <RenderRevision revisionNum={2} data={evaluaciones.revision2} />
     </div>
   );
