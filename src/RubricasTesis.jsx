@@ -1,55 +1,79 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { AlertCircle, CheckCircle2, Menu, X } from 'lucide-react';
 
 const RubricasTesis = ({ evaluador }) => {
-  const [evaluaciones, setEvaluaciones] = useState({
-    revision1: {
-      criterio1: { valor: '', observaciones: '' },
-      criterio2: { valor: '', observaciones: '' },
-      criterio3: { valor: '', observaciones: '' },
-      criterio4: { valor: '', observaciones: '' }
-    },
-    revision2: {
-      criterio1: { valor: '', observaciones: '' },
-      criterio2: { valor: '', observaciones: '' },
-      criterio3: { valor: '', observaciones: '' },
-      criterio4: { valor: '', observaciones: '' }
-    }
-  });
-
   const [activeRevision, setActiveRevision] = useState('revision1');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  const criterios = [
+    'Presentación audiovisual',
+    'Investigación y sustento del tema',
+    'Solución de diseño propuesta',
+    'Cumplimiento de entregables'
+  ];
 
-  const criterios = {
-    criterio1: "Claridad y coherencia en la presentación",
-    criterio2: "Dominio del tema y respuesta a preguntas",
-    criterio3: "Calidad del material presentado",
-    criterio4: "Cumplimiento de objetivos propuestos"
+  const valoraciones = {
+    insuficiente: 1,
+    suficiente: 2,
+    excelente: 3
   };
 
-  const handleEvaluacionChange = (revision, criterio, campo, valor) => {
-    setEvaluaciones(prev => ({
-      ...prev,
-      [revision]: {
-        ...prev[revision],
-        [criterio]: {
-          ...prev[revision][criterio],
-          [campo]: valor
-        }
-      }
-    }));
-  };
+  const [evaluaciones, setEvaluaciones] = useState({
+    revision1: {},
+    revision2: {}
+  });
 
   useEffect(() => {
     const savedData = localStorage.getItem(`evaluaciones-${evaluador.id}`);
     if (savedData) {
       setEvaluaciones(JSON.parse(savedData));
     }
-  }, [evaluador]);
+  }, [evaluador.id]);
 
   useEffect(() => {
     localStorage.setItem(`evaluaciones-${evaluador.id}`, JSON.stringify(evaluaciones));
-  }, [evaluaciones, evaluador]);
+  }, [evaluaciones, evaluador.id]);
+
+  const calcularPuntajePresentacion = (calificaciones) => {
+    const valores = Object.values(calificaciones);
+    if (valores.length === 0) return 0;
+    const suma = valores.reduce((acc, val) => acc + valoraciones[val], 0);
+    const maximo = criterios.length * 3;
+    return (suma / maximo) * 10;
+  };
+
+  const calcularPuntajeFinal = () => {
+    const puntaje1 = calcularPuntajePresentacion(evaluaciones.revision1) * 0.4;
+    const puntaje2 = calcularPuntajePresentacion(evaluaciones.revision2) * 0.6;
+    return puntaje1 + puntaje2;
+  };
+
+  const handleCalificacion = (revision, criterio, valor) => {
+    setEvaluaciones(prev => ({
+      ...prev,
+      [revision]: {
+        ...prev[revision],
+        [criterio]: valor
+      }
+    }));
+  };
+
+  const renderBotonValoracion = (revision, criterio, valor) => {
+    const isSelected = evaluaciones[revision][criterio] === valor;
+    
+    return (
+      <button
+        key={valor}
+        onClick={() => handleCalificacion(revision, criterio, valor)}
+        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors
+          ${isSelected ? 
+            'bg-blue-600 text-white' : 
+            'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+      >
+        {valor.charAt(0).toUpperCase() + valor.slice(1)}
+      </button>
+    );
+  };
 
   // Componente de navegación móvil
   const MobileNav = () => (
@@ -61,7 +85,7 @@ const RubricasTesis = ({ evaluador }) => {
             activeRevision === 'revision1' ? 'bg-blue-100 text-blue-700' : 'text-gray-600'
           }`}
         >
-          Revisión 1 (40%)
+          Presentación 1 (40%)
         </button>
         <button
           onClick={() => setActiveRevision('revision2')}
@@ -69,67 +93,76 @@ const RubricasTesis = ({ evaluador }) => {
             activeRevision === 'revision2' ? 'bg-blue-100 text-blue-700' : 'text-gray-600'
           }`}
         >
-          Revisión 2 (60%)
+          Presentación 2 (60%)
         </button>
       </div>
     </div>
   );
 
-  const RenderRevision = ({ revisionNum, data }) => (
-    <div className={`bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-8 ${
-      activeRevision !== `revision${revisionNum}` ? 'hidden lg:block' : ''
-    }`}>
-      <div className="mb-4">
-        <h2 className="text-lg sm:text-xl font-bold">
-          Revisión {revisionNum} ({revisionNum === 1 ? '40%' : '60%'})
-        </h2>
-        <p className="text-sm sm:text-base text-gray-600">Evaluador: {evaluador.nombre}</p>
-      </div>
-      <div className="space-y-4 sm:space-y-6">
-        {Object.entries(criterios).map(([key, descripcion]) => (
-          <div key={key} className="p-3 sm:p-4 bg-gray-50 rounded-lg">
-            <label className="block text-base sm:text-lg font-medium mb-2">{descripcion}</label>
-            <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0 mb-2">
-              {['insuficiente', 'suficiente', 'excelente'].map((valor) => (
-                <label key={valor} className="flex items-center space-x-2 text-sm sm:text-base">
-                  <input
-                    type="radio"
-                    name={`${key}-${revisionNum}`}
-                    value={valor}
-                    checked={data[key].valor === valor}
-                    onChange={(e) => 
-                      handleEvaluacionChange(`revision${revisionNum}`, key, 'valor', e.target.value)
-                    }
-                    className="w-4 h-4"
-                  />
-                  <span className="capitalize">{valor}</span>
-                </label>
-              ))}
+  const puntajeFinal = calcularPuntajeFinal();
+  const aprobado = puntajeFinal >= 8;
+
+  const RenderRevision = ({ revisionNum }) => {
+    const revision = `revision${revisionNum}`;
+    return (
+      <Card className={`mb-6 ${activeRevision !== revision ? 'hidden lg:block' : ''}`}>
+        <CardHeader>
+          <CardTitle>
+            Presentación {revisionNum} ({revisionNum === 1 ? '40%' : '60%'})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {criterios.map((criterio, index) => (
+              <div key={criterio} className="space-y-2">
+                <h3 className="font-medium text-sm sm:text-base">{criterio}</h3>
+                <div className="flex flex-wrap gap-2">
+                  {Object.keys(valoraciones).map(valor => 
+                    renderBotonValoracion(revision, `criterio${index + 1}`, valor)
+                  )}
+                </div>
+              </div>
+            ))}
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <p className="font-medium">
+                Puntaje: {calcularPuntajePresentacion(evaluaciones[revision]).toFixed(2)}/10
+              </p>
             </div>
-            <textarea
-              placeholder="Observaciones..."
-              value={data[key].observaciones}
-              onChange={(e) => 
-                handleEvaluacionChange(`revision${revisionNum}`, key, 'observaciones', e.target.value)
-              }
-              className="w-full p-2 border rounded-md text-sm sm:text-base"
-              rows="2"
-            />
           </div>
-        ))}
-      </div>
-    </div>
-  );
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="container mx-auto p-4 max-w-4xl pb-16 lg:pb-4">
-      <h1 className="text-xl sm:text-2xl font-bold text-center mb-4 sm:mb-6">
-        Evaluación de Tesis
-      </h1>
-      
-      <RenderRevision revisionNum={1} data={evaluaciones.revision1} />
-      <RenderRevision revisionNum={2} data={evaluaciones.revision2} />
-      
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Sistema de Calificación de Presentaciones de Tesis</CardTitle>
+        </CardHeader>
+      </Card>
+
+      <RenderRevision revisionNum={1} />
+      <RenderRevision revisionNum={2} />
+
+      <Card>
+        <CardContent className="mt-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold">Puntaje Final: {puntajeFinal.toFixed(2)}/10</h2>
+            {aprobado ? (
+              <CheckCircle2 className="text-green-500 w-6 h-6" />
+            ) : (
+              <AlertCircle className="text-red-500 w-6 h-6" />
+            )}
+          </div>
+          <p className={`text-lg ${aprobado ? 'text-green-600' : 'text-red-600'}`}>
+            {aprobado 
+              ? 'El estudiante puede pasar a su defensa privada' 
+              : 'El estudiante aún no alcanza el puntaje mínimo requerido (8/10)'}
+          </p>
+        </CardContent>
+      </Card>
+
       <MobileNav />
     </div>
   );
