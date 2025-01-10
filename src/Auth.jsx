@@ -1,74 +1,92 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { AlertCircle, User } from 'lucide-react';
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const Auth = ({ onLogin }) => {
-  const [credentials, setCredentials] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    nombre: ''
+  });
 
-  const handleLogin = (e) => {
+  // Lista de evaluadores permitidos
+  const evaluadores = [
+    { email: 'profesor1@tesis.com', password: 'evaluador123', nombre: 'Dr. Juan Pérez' },
+    { email: 'profesor2@tesis.com', password: 'evaluador123', nombre: 'Dra. María García' },
+    { email: 'profesor3@tesis.com', password: 'evaluador123', nombre: 'Dr. Carlos López' }
+  ];
+
+  const handleSubmit = (e) => {
     e.preventDefault();
-    // Simulamos verificación de credenciales
-    if (credentials.email.includes('@') && credentials.password.length >= 6) {
-      const userData = {
-        id: '123',
-        name: 'Evaluador Test',
-        role: 'evaluador',
-        email: credentials.email
-      };
-      onLogin(userData);
+    const evaluador = evaluadores.find(ev => 
+      ev.email === formData.email && ev.password === formData.password
+    );
+
+    if (evaluador) {
+      // Pasamos tanto el ID como el nombre real del evaluador
+      onLogin({
+        id: evaluador.email.split('@')[0],  // profesor1, profesor2, etc.
+        nombre: evaluador.nombre
+      });
     } else {
-      setError('Credenciales inválidas');
+      alert('Credenciales incorrectas');
     }
   };
 
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="max-w-md w-full space-y-8">
-        <CardHeader>
-          <CardTitle className="text-center text-2xl font-bold">
-            Sistema de Evaluación de Tesis
-          </CardTitle>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <h2 className="text-2xl font-bold">Sistema de Evaluación de Tesis</h2>
+          <p className="text-gray-600">Ingrese sus credenciales</p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Correo Electrónico
-              </label>
-              <input
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Correo Electrónico</Label>
+              <Input
+                id="email"
+                name="email"
                 type="email"
                 required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                value={credentials.email}
-                onChange={(e) => setCredentials({...credentials, email: e.target.value})}
+                value={formData.email}
+                onChange={handleChange}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Contraseña
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="password">Contraseña</Label>
+              <Input
+                id="password"
+                name="password"
                 type="password"
                 required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                value={credentials.password}
-                onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                value={formData.password}
+                onChange={handleChange}
               />
             </div>
-            {error && (
-              <div className="flex items-center text-red-600 text-sm">
-                <AlertCircle className="w-4 h-4 mr-2" />
-                {error}
-              </div>
-            )}
-            <button
-              type="submit"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
+            <Button type="submit" className="w-full">
               Ingresar
-            </button>
+            </Button>
           </form>
+          
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600">Credenciales de prueba:</p>
+            <ul className="text-sm text-gray-500">
+              {evaluadores.map(ev => (
+                <li key={ev.email}>{ev.nombre}: {ev.email}</li>
+              ))}
+              <li className="mt-1">Contraseña: evaluador123</li>
+            </ul>
+          </div>
         </CardContent>
       </Card>
     </div>
