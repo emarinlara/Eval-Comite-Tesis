@@ -1,171 +1,113 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { AlertCircle, CheckCircle2, User } from 'lucide-react';
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 
-const RubricasTesis = ({ initialData, onDataChange }) => {
-  const evaluadores = [1, 2, 3];
-  
-  const criterios = [
-    'Presentación audiovisual',
-    'Investigación y sustento del tema',
-    'Solución de diseño propuesta',
-    'Cumplimiento de entregables'
-  ];
+const RubricasTesis = ({ evaluador }) => {
+  const [evaluaciones, setEvaluaciones] = useState({
+    revision1: {
+      criterio1: { valor: '', observaciones: '' },
+      criterio2: { valor: '', observaciones: '' },
+      criterio3: { valor: '', observaciones: '' },
+      criterio4: { valor: '', observaciones: '' }
+    },
+    revision2: {
+      criterio1: { valor: '', observaciones: '' },
+      criterio2: { valor: '', observaciones: '' },
+      criterio3: { valor: '', observaciones: '' },
+      criterio4: { valor: '', observaciones: '' }
+    }
+  });
 
-  const valoraciones = {
-    insuficiente: 1,
-    suficiente: 2,
-    excelente: 3
+  const criterios = {
+    criterio1: "Claridad y coherencia en la presentación",
+    criterio2: "Dominio del tema y respuesta a preguntas",
+    criterio3: "Calidad del material presentado",
+    criterio4: "Cumplimiento de objetivos propuestos"
   };
 
-  const [calificacionesEvaluadores, setCalificacionesEvaluadores] = useState(
-    initialData || evaluadores.reduce((acc, evaluador) => ({
-      ...acc,
-      [evaluador]: {
-        presentacion1: {},
-        presentacion2: {},
-        observaciones1: {},
-        observaciones2: {}
+  const handleEvaluacionChange = (revision, criterio, campo, valor) => {
+    setEvaluaciones(prev => ({
+      ...prev,
+      [revision]: {
+        ...prev[revision],
+        [criterio]: {
+          ...prev[revision][criterio],
+          [campo]: valor
+        }
       }
-    }), {})
+    }));
+  };
+
+  // Cargar evaluaciones guardadas
+  useEffect(() => {
+    const savedData = localStorage.getItem(`evaluaciones-${evaluador.id}`);
+    if (savedData) {
+      setEvaluaciones(JSON.parse(savedData));
+    }
+  }, [evaluador]);
+
+  // Guardar evaluaciones
+  useEffect(() => {
+    localStorage.setItem(`evaluaciones-${evaluador.id}`, JSON.stringify(evaluaciones));
+  }, [evaluaciones, evaluador]);
+
+  const RenderRevision = ({ revisionNum, data }) => (
+    <Card className="mb-8">
+      <CardHeader>
+        <h2 className="text-xl font-bold">
+          Revisión {revisionNum} ({revisionNum === 1 ? '40%' : '60%'})
+        </h2>
+        <p className="text-gray-600">Evaluador: {evaluador.nombre}</p>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {Object.entries(criterios).map(([key, descripcion]) => (
+          <div key={key} className="space-y-4 p-4 bg-gray-50 rounded-lg">
+            <Label className="text-lg font-medium">{descripcion}</Label>
+            <RadioGroup
+              value={data[key].valor}
+              onValueChange={(valor) => 
+                handleEvaluacionChange(`revision${revisionNum}`, key, 'valor', valor)
+              }
+              className="flex space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="insuficiente" id={`${key}-insuficiente-${revisionNum}`} />
+                <Label htmlFor={`${key}-insuficiente-${revisionNum}`}>Insuficiente</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="suficiente" id={`${key}-suficiente-${revisionNum}`} />
+                <Label htmlFor={`${key}-suficiente-${revisionNum}`}>Suficiente</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="excelente" id={`${key}-excelente-${revisionNum}`} />
+                <Label htmlFor={`${key}-excelente-${revisionNum}`}>Excelente</Label>
+              </div>
+            </RadioGroup>
+            <Textarea
+              placeholder="Observaciones..."
+              value={data[key].observaciones}
+              onChange={(e) => 
+                handleEvaluacionChange(`revision${revisionNum}`, key, 'observaciones', e.target.value)
+              }
+              className="mt-2"
+            />
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 
-  useEffect(() => {
-    if (onDataChange) {
-      onDataChange(calificacionesEvaluadores);
-    }
-  }, [calificacionesEvaluadores, onDataChange]);
-
-  const calcularPuntajePresentacion = (calificaciones) => {
-    if (Object.keys(calificaciones).length === 0) return 0;
-    const suma = Object.values(calificaciones).reduce((acc, val) => acc + valoraciones[val], 0);
-    const maximo = criterios.length * 3;
-    return (suma / maximo) * 10;
-  };
-
-  const calcularPromedioComite = () => {
-    const promedios = evaluadores.map(evaluador => {
-      const puntaje1 = calcularPuntajePresentacion(calificacionesEvaluadores[evaluador].presentacion1) * 0.4;
-      const puntaje2 = calcularPuntajePresentacion(calificacionesEvaluadores[evaluador].presentacion2) * 0.6;
-      return puntaje1 + puntaje2;
-    });
-    
-    const sumaPromedios = promedios.reduce((acc, val) => acc + val, 0);
-    return sumaPromedios / evaluadores.length;
-  };
-
-  const handleCalificacion = (evaluador, presentacion, criterio, valor) => {
-    setCalificacionesEvaluadores(prev => ({
-      ...prev,
-      [evaluador]: {
-        ...prev[evaluador],
-        [`presentacion${presentacion}`]: {
-          ...prev[evaluador][`presentacion${presentacion}`],
-          [criterio]: valor
-        }
-      }
-    }));
-  };
-
-  const handleObservacion = (evaluador, presentacion, criterio, observacion) => {
-    setCalificacionesEvaluadores(prev => ({
-      ...prev,
-      [evaluador]: {
-        ...prev[evaluador],
-        [`observaciones${presentacion}`]: {
-          ...prev[evaluador][`observaciones${presentacion}`],
-          [criterio]: observacion
-        }
-      }
-    }));
-  };
-
-  const renderBotonValoracion = (evaluador, presentacion, criterio, valor) => {
-    const isSelected = calificacionesEvaluadores[evaluador][`presentacion${presentacion}`][criterio] === valor;
-    
-    return (
-      <button
-        onClick={() => handleCalificacion(evaluador, presentacion, criterio, valor)}
-        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors
-          ${isSelected ? 
-            'bg-blue-600 text-white' : 
-            'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-      >
-        {valor.charAt(0).toUpperCase() + valor.slice(1)}
-      </button>
-    );
-  };
-
-  const puntajeFinal = calcularPromedioComite();
-  const aprobado = puntajeFinal >= 8;
-
   return (
-    <div className="space-y-8">
-      {evaluadores.map(evaluador => (
-        <Card key={evaluador} className="overflow-hidden">
-          <CardHeader className="bg-gray-50">
-            <div className="flex items-center gap-2">
-              <User className="w-6 h-6" />
-              <CardTitle>Evaluador {evaluador}</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-8">
-              {[1, 2].map(presentacion => (
-                <div key={presentacion} className="space-y-6">
-                  <h2 className="text-lg font-bold border-b pb-2">
-                    Presentación {presentacion} ({presentacion === 1 ? '40%' : '60%'})
-                  </h2>
-                  <div className="space-y-6">
-                    {criterios.map(criterio => (
-                      <div key={criterio} className="space-y-3">
-                        <h3 className="font-medium">{criterio}</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {Object.keys(valoraciones).map(valor => (
-                            renderBotonValoracion(evaluador, presentacion, criterio, valor)
-                          ))}
-                        </div>
-                        <textarea
-                          placeholder="Observaciones..."
-                          className="w-full p-2 border rounded-lg text-sm"
-                          value={calificacionesEvaluadores[evaluador][`observaciones${presentacion}`][criterio] || ''}
-                          onChange={(e) => handleObservacion(evaluador, presentacion, criterio, e.target.value)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                    <p className="font-medium">
-                      Puntaje Presentación {presentacion}:{' '}
-                      {calcularPuntajePresentacion(calificacionesEvaluadores[evaluador][`presentacion${presentacion}`]).toFixed(2)}/10
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="container mx-auto p-4 max-w-4xl">
+      <h1 className="text-2xl font-bold text-center mb-6">Evaluación de Tesis</h1>
       
-      <Card className="bg-gray-50">
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold">Promedio Final del Comité: {puntajeFinal.toFixed(2)}/10</h2>
-              {aprobado ? (
-                <CheckCircle2 className="text-green-500 w-6 h-6" />
-              ) : (
-                <AlertCircle className="text-red-500 w-6 h-6" />
-              )}
-            </div>
-            <p className={`text-lg ${aprobado ? 'text-green-600' : 'text-red-600'}`}>
-              {aprobado 
-                ? 'El estudiante puede pasar a su defensa privada' 
-                : 'El estudiante aún no alcanza el puntaje mínimo requerido (8/10)'}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Primera Revisión */}
+      <RenderRevision revisionNum={1} data={evaluaciones.revision1} />
+      
+      {/* Segunda Revisión */}
+      <RenderRevision revisionNum={2} data={evaluaciones.revision2} />
     </div>
   );
 };
